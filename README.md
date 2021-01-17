@@ -18,3 +18,5 @@ Finally remove the `.MTS` and the corresponding converted `.MOV` files of the ma
 Dependencies:
 * Python 3
 * VLC player (`cvlc` called as subprocess)
+
+![Screenshot](images/screenshot.png)
