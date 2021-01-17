@@ -156,9 +156,10 @@ class CursesViewController:
 
             return True
 
-    def __init__(self, scr, model):
+    def __init__(self, scr, model, read_only):
         self.scr = scr
         self.model = model
+        self.read_only = read_only
         self.exit = False
         self.in_buf = ""
         self.last_in = 0
@@ -322,6 +323,7 @@ class CursesViewController:
         return subprocess.Popen(["cvlc", "--play-and-exit", mov_file_path], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
     def toggle_del_at_cursor_line(self):
+        if self.read_only: return
         clip = self.model.clips[self.cursor_line]
         clip.marked_for_del = not clip.marked_for_del
         self.refresh_line(self.cursor_line)
@@ -349,6 +351,7 @@ class CursesViewController:
             self.exit = True
 
     def save(self):
+        if self.read_only: return
         self.model.delete_marked_clips()
         if len(self.model.clips) == 0:
             self.exit = True
@@ -366,8 +369,8 @@ class CursesViewController:
                 self.last_in = ch
                 if 0x20 <= self.last_in <= 0x7e:
                     self.in_buf += chr(self.last_in) # ASCII input goes to the buffer.
-                elif self.last_in == 263:
-                    self.in_buf = self.in_buf[:-1] # Backspace
+                elif self.last_in == 263: # Backspace
+                    self.in_buf = self.in_buf[:-1]
                 enter_pressed = (self.last_in == 0xa)
                 if self.mode.handle_input(enter_pressed):
                     self.in_buf = "" # Reset buffer.
@@ -375,8 +378,8 @@ class CursesViewController:
             else:
                 self.mode.update()
 
-def show_curses_ui(scr, model):
-    view_controller = CursesViewController(scr, model)
+def show_curses_ui(scr, model, read_only):
+    view_controller = CursesViewController(scr, model, read_only)
     view_controller.loop()
 
 def main():
@@ -402,7 +405,7 @@ def main():
     #    print(i)
     model = Model(mov_dir, mts_dir, clips)
     # Start ncurses UI.
-    curses.wrapper(show_curses_ui, model)
+    curses.wrapper(show_curses_ui, model, args.read_only)
 
 if __name__ == "__main__":
     main()
