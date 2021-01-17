@@ -4,14 +4,13 @@ import argparse
 import os
 import subprocess
 import curses
-import curses.textpad
 import abc
 
 MTS_FILE_ENDING = ".MTS"
 MOV_FILE_ENDING = ".mov"
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Tool to quickly check the (converted) footage and remove bad clips.")
+    parser = argparse.ArgumentParser(description="Tool to quickly check the (converted) footage and remove bad clips in both the original MTS files and converted MOV files.")
     parser.add_argument("dir", type=str, help="The directory which contains .MOV files or .MTS files.")
     parser.add_argument("--read-only", action="store_true", help="Disables delete functionality. Clips can only be watched.")
     return parser.parse_args()
@@ -323,7 +322,9 @@ class CursesViewController:
         return subprocess.Popen(["cvlc", "--play-and-exit", mov_file_path], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
     def toggle_del_at_cursor_line(self):
-        if self.read_only: return
+        if self.read_only:
+            self.set_msg("Cannot delete in read-only mode.")
+            return
         clip = self.model.clips[self.cursor_line]
         clip.marked_for_del = not clip.marked_for_del
         self.refresh_line(self.cursor_line)
@@ -351,7 +352,9 @@ class CursesViewController:
             self.exit = True
 
     def save(self):
-        if self.read_only: return
+        if self.read_only:
+            self.set_msg("Cannot save in read-only mode.")
+            return
         self.model.delete_marked_clips()
         if len(self.model.clips) == 0:
             self.exit = True
@@ -401,11 +404,10 @@ def main():
     if len(clips) == 0:
         print("Could not find any clips.")
         return 0
-    #for i in range(len(clips)):
-    #    print(i)
     model = Model(mov_dir, mts_dir, clips)
     # Start ncurses UI.
     curses.wrapper(show_curses_ui, model, args.read_only)
+    return 0
 
 if __name__ == "__main__":
     main()
