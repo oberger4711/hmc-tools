@@ -308,12 +308,16 @@ def main():
         # MTS dir was given. Derive MOV dir.
         mts_dir = args.dir
         mov_dir = mts_dir + "_s"
+    if not os.path.isdir(mts_dir):
+        print("MTS dir '{}' does not exist.".format(mts_dir))
+    if not os.path.isdir(mov_dir):
+        print("MOV dir '{}' does not exist.".format(mov_dir))
     clips = find_clips(mts_dir, mov_dir)
     if len(clips) == 0:
         print("Could not find any clips.")
         return 0
-    for i in range(len(clips)):
-        print(i)
+    #for i in range(len(clips)):
+    #    print(i)
     model = Model(mov_dir, mts_dir, clips)
     curses.wrapper(show_curses_ui, model)
 
