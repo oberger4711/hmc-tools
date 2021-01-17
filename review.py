@@ -13,6 +13,7 @@ MOV_FILE_ENDING = ".mov"
 def parse_args():
     parser = argparse.ArgumentParser(description="Tool to quickly check the (converted) footage and remove bad clips.")
     parser.add_argument("dir", type=str, help="The directory which contains .MOV files or .MTS files.")
+    parser.add_argument("--read-only", action="store_true", help="Disables delete functionality. Clips can only be watched.")
     return parser.parse_args()
 
 def find_file_pathes(directory, ending):
@@ -62,6 +63,13 @@ class Model:
         self.mov_dir = mov_dir
         self.mts_dir = mts_dir
         self.clips = clips
+
+    def delete_marked_clips(self):
+        to_del = [c for c in self.clips if c.marked_for_del]
+        for c_to_del in to_del:
+            os.remove(c_to_del.mov_file_path)
+            os.remove(c_to_del.mts_file_path)
+            self.clips.remove(c_to_del)
 
 class CursesViewController:
     CP_MARK = 1
@@ -341,11 +349,7 @@ class CursesViewController:
             self.exit = True
 
     def save(self):
-        to_del = [c for c in self.model.clips if c.marked_for_del]
-        for c_to_del in to_del:
-            os.remove(c_to_del.mov_file_path)
-            os.remove(c_to_del.mts_file_path)
-            self.model.clips.remove(c_to_del)
+        self.model.delete_marked_clips()
         if len(self.model.clips) == 0:
             self.exit = True
         self.reset()
