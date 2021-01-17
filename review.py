@@ -125,24 +125,12 @@ class CursesViewController:
         self.in_buf = ""
         self.last_in = 0
         self.cursor_line = 0
+        self.top_v_line = 0
         self.CP_MARK = 1
         self.CP_BAR = 2
         self.CP_HIGHLIGHT = 3
-        self.init_curses()
         self.mode = CursesViewController.NormalMode(self)
         self.reset()
-
-    def init_curses(self):
-        self.rows, self.cols = self.scr.getmaxyx()
-        self.top_v_line = 0
-        curses.curs_set(0)
-        self.scr.timeout(100)
-        curses.use_default_colors()
-        curses.init_pair(self.CP_MARK, -1, 7) # -1, 7
-        curses.init_pair(self.CP_BAR, 7, 0) # 7, 0
-        curses.init_pair(self.CP_HIGHLIGHT, 7, 2) # 2, 7
-        if self.rows < 4 or self.cols < 25:
-            exit(-1)
 
     def __trunc_text(self, text, length):
         limit = max(0, min(self.cols, length))
@@ -155,6 +143,26 @@ class CursesViewController:
         if len(text) <= limit: return text
         else: return text[:limit]
 
+    def __s_addstr(self, w, row, col, text, fmt=0):
+        rows, cols = w.getmaxyx()
+        if col >= cols or row >= rows:
+            return
+        if col < 0 or row < 0:
+            return
+        if len(text) + col > cols:
+            text = text[:cols - col]
+        w.addstr(row, col, text, fmt)
+
+    def init_curses(self):
+        self.rows, self.cols = self.scr.getmaxyx()
+        curses.curs_set(0)
+        self.scr.timeout(100)
+        curses.use_default_colors()
+        curses.init_pair(self.CP_MARK, -1, 7) # -1, 7
+        curses.init_pair(self.CP_BAR, 7, 0) # 7, 0
+        curses.init_pair(self.CP_HIGHLIGHT, 7, 2) # 2, 7
+        #if self.rows < 4 or self.cols < 25: exit(-1) # Should not be necessary.
+
     def reset_editor(self):
         self.rows_editor = self.rows - 2
         self.pad_editor = curses.newpad(len(self.model.clips) + 1, self.cols)
@@ -162,6 +170,7 @@ class CursesViewController:
             self.refresh_line(i)
 
     def reset(self):
+        self.init_curses()
         # Build windows and pads.
         self.scr.clear()
         self.scr.refresh()
@@ -177,8 +186,6 @@ class CursesViewController:
         self.win_status_bar.bkgd(curses.color_pair(self.CP_MARK))
         self.refresh_status_bar()
 
-        self.scr.refresh()
-
     def refresh_title_bar(self):
         self.win_title_bar.clear()
         label = self.__crop_text(" MTS / MOV: ")
@@ -189,19 +196,19 @@ class CursesViewController:
         else:
             mov_dir_truncated = self.model.mov_dir
         # Left aligned
-        self.win_title_bar.addstr(0, 0, label, curses.A_REVERSE)
+        self.__s_addstr(self.win_title_bar, 0, 0, label, curses.A_REVERSE)
         dirs_text = self.__trunc_text(" {} / {}".format(self.model.mts_dir, mov_dir_truncated), self.cols - len(label) - len(prog_name))
-        self.win_title_bar.addstr(0, len(label), dirs_text)
+        self.__s_addstr(self.win_title_bar, 0, len(label), dirs_text)
         # Right aligned
-        self.win_title_bar.addstr(0, self.cols - len(prog_name), prog_name, curses.A_REVERSE)
+        self.__s_addstr(self.win_title_bar, 0, self.cols - len(prog_name), prog_name, curses.A_REVERSE)
         self.win_title_bar.refresh()
 
     def refresh_status_bar(self):
         self.win_status_bar.clear()
         padded_mode_name = " {} ".format(self.mode.name)
         s_last_in = " {} ".format(self.last_in)
-        self.win_status_bar.addstr(0, 0, self.__trunc_text(padded_mode_name, self.cols - len(s_last_in)), curses.A_REVERSE | curses.A_BOLD)
-        self.win_status_bar.addstr(0, self.cols - len(s_last_in), s_last_in, curses.A_REVERSE)
+        self.__s_addstr(self.win_status_bar, 0, 0, self.__trunc_text(padded_mode_name, self.cols - len(s_last_in)), curses.A_REVERSE | curses.A_BOLD)
+        self.__s_addstr(self.win_status_bar, 0, self.cols - len(s_last_in), s_last_in, curses.A_REVERSE)
         self.win_status_bar.refresh()
 
     def refresh_line(self, i):
@@ -217,8 +224,8 @@ class CursesViewController:
         if i == self.cursor_line:
             s_file_name = s_file_name + " " * (max(0, self.cols - len(s_file_name)))
             attr |= self.mode.cursor_line_attr
-        self.pad_editor.addstr(i, 0, s_file_name, attr)
-        self.pad_editor.addstr(i, self.cols - len(s_file_size), s_file_size, attr)
+        self.__s_addstr(self.pad_editor, i, 0, s_file_name, attr)
+        self.__s_addstr(self.pad_editor, i, self.cols - len(s_file_size), s_file_size, attr)
 
     def refresh_editor(self):
         self.pad_editor.refresh(self.top_v_line, 0, 1, 0, self.rows_editor, self.cols)
@@ -269,6 +276,9 @@ class CursesViewController:
         while True:
             ch = self.scr.getch()
             if ch != -1:
+                if ch == curses.KEY_RESIZE:
+                    # Terminal has been resized. Reset view.
+                    self.reset()
                 self.last_in = ch
                 if 0x20 <= self.last_in <= 0x7e:
                     self.in_buf += chr(self.last_in) # ASCII input goes to the buffer.
