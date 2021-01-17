@@ -123,6 +123,8 @@ class CursesViewController:
                         self.vc.exit_no_save()
                     elif in_buf == ":q!" or in_buf == ":cq":
                         self.vc.exit_no_save_forced()
+                    else:
+                        self.vc.set_msg("Unknown command: '{}'.".format(in_buf))
                     return True
                 else:
                     return False # Command not yet complete.
@@ -236,10 +238,10 @@ class CursesViewController:
         s_last_in = " {} ".format(self.last_in)
         self.__s_addstr(self.win_status_bar, 0, 0, self.__trunc_text(padded_mode_name, self.cols - len(s_last_in)), curses.color_pair(CursesViewController.CP_BAR) | curses.A_REVERSE | curses.A_BOLD)
         if self.in_buf == "" and self.msg is not None:
-            self.__s_addstr(self.win_status_bar, 0, len(padded_mode_name), " {} ".format(self.msg), curses.color_pair(CursesViewController.CP_BAR))
+            self.__s_addstr(self.win_status_bar, 0, len(padded_mode_name), " {} ".format(self.msg))
         else:
             # Show current buffer.
-            self.__s_addstr(self.win_status_bar, 0, len(padded_mode_name), " {} ".format(self.in_buf), curses.color_pair(CursesViewController.CP_BAR))
+            self.__s_addstr(self.win_status_bar, 0, len(padded_mode_name), " {} ".format(self.in_buf))
         self.__s_addstr(self.win_status_bar, 0, self.cols - len(s_last_in), s_last_in, curses.color_pair(CursesViewController.CP_BAR) | curses.A_REVERSE)
         self.win_status_bar.refresh()
 
@@ -249,7 +251,7 @@ class CursesViewController:
         self.pad_editor.move(i, 0)
         self.pad_editor.clrtoeol()
         clip = self.model.clips[i]
-        s_file_size = " {:.1f} MB".format(clip.mov_file_size / (1024 * 1024))
+        s_file_size = " {:.1f} MB ".format(clip.mov_file_size / (1024 * 1024))
         stat = ""
         if not clip.played:
             stat += "*"
@@ -316,6 +318,10 @@ class CursesViewController:
         clip.marked_for_del = not clip.marked_for_del
         self.refresh_line(self.cursor_line)
         self.refresh_editor()
+
+    def set_msg(self, msg):
+        self.msg = msg
+        self.refresh_status_bar()
 
     def switch_mode(self, mode):
         self.mode = mode
