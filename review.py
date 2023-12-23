@@ -7,7 +7,7 @@ import curses
 import abc
 
 MTS_FILE_ENDING = ".MTS"
-MOV_FILE_ENDING = ".mov"
+MOV_FILE_ENDING = ".mp4"
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Tool to quickly check the (converted) footage and remove bad clips in both the original MTS files and converted MOV files.")
@@ -401,6 +401,9 @@ def main():
     if not os.path.isdir(mov_dir):
         print("MOV dir '{}' does not exist.".format(mov_dir))
     clips = find_clips(mts_dir, mov_dir)
+    if len(clips) == 0:
+        mts_dir = os.path.join(mts_dir, "PRIVATE", "AVCHD", "BDMV", "STREAM")
+        clips = find_clips(mts_dir, mov_dir)
     if len(clips) == 0:
         print("Could not find any clips.")
         return 0

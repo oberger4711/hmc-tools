@@ -24,8 +24,8 @@ def convert_mts_files(mts_file_pathes, ffmpeg_options_string, out_dir):
     ffmpeg_options = ffmpeg_options_string.split(" ")
     for mts_file_path in mts_file_pathes:
         _, mts_file_name = os.path.split(mts_file_path)
-        mov_file_path = os.path.join(out_dir, mts_file_name[:-4] + ".mov") # Replace ending.
-        cmd = "ffmpeg -loglevel 24 -y -i".split(" ") + [mts_file_path] + ffmpeg_options + "-f mov".split(" ") + [mov_file_path]
+        mp4_file_path = os.path.join(out_dir, mts_file_name[:-4] + ".mp4") # Replace ending.
+        cmd = "ffmpeg -loglevel 24 -y -i".split(" ") + [mts_file_path] + ffmpeg_options + "-f mp4".split(" ") + [mp4_file_path]
         print(" ".join(cmd))
         res = subprocess.run(cmd)
         if res.returncode != 0:
@@ -44,7 +44,7 @@ def main():
     ffmpeg_options = None
     if args.for_sharing:
         # For sharing
-        ffmpeg_options = "-c:v copy -q:v 1 -c:a aac"
+        ffmpeg_options = "-c:v mpeg4 -q:v 1 -c:a aac"
         out_dir = args.dir + "_s"
     else:
         # For editing
